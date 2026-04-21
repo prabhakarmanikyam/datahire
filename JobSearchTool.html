@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataHire — Job Search Engine</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0D0D0F;
+    --bg2: #141417;
+    --bg3: #1C1C21;
+    --bg4: #242429;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #F0EFE8;
+    --text2: #8A8A96;
+    --text3: #555560;
+    --accent: #5B7FFF;
+    --accent2: #3D5CE8;
+    --green: #3ECF8E;
+    --amber: #F5A623;
+    --red: #FF5C5C;
+    --purple: #A78BFA;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* LAYOUT */
+  .shell { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+  .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+  /* SIDEBAR */
+  .brand {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand-name {
+    font-size: 16px; font-weight: 600;
+    background: linear-gradient(135deg, #5B7FFF, #A78BFA);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -0.3px;
+  }
+  .brand-sub { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: var(--mono); }
+
+  .sidebar-section { padding: 14px 20px 8px; }
+  .sidebar-label { font-size: 10px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: var(--radius);
+    font-size: 13px; color: var(--text2);
+    cursor: pointer; transition: all 0.15s;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: rgba(91,127,255,0.12); color: var(--accent); }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+  .nav-item.active .nav-dot { background: var(--accent); }
+
+  .resume-card {
+    margin: 12px 16px;
+    background: linear-gradient(135deg, rgba(91,127,255,0.1), rgba(167,139,250,0.08));
+    border: 1px solid rgba(91,127,255,0.2);
+    border-radius: var(--radius);
+    padding: 12px;
+  }
+  .resume-name { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+  .resume-sub { font-size: 11px; color: var(--text3); }
+  .resume-pill {
+    display: inline-block; margin-top: 8px;
+    background: rgba(62,207,142,0.1); color: var(--green);
+    border: 1px solid rgba(62,207,142,0.2);
+    border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 500;
+  }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 16px 16px; }
+  .stat-mini {
+    background: var(--bg3); border-radius: 8px; padding: 10px;
+    text-align: center;
+  }
+  .stat-mini-val { font-size: 18px; font-weight: 600; color: var(--text); font-family: var(--mono); }
+  .stat-mini-label { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .search-wrap {
+    flex: 1; display: flex; align-items: center;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 0 14px; gap: 10px;
+  }
+  .search-wrap input {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--text); font-family: var(--font); font-size: 13px;
+    padding: 9px 0;
+  }
+  .search-wrap input::placeholder { color: var(--text3); }
+  .search-icon { color: var(--text3); font-size: 14px; }
+
+  .filter-row {
+    display: flex; gap: 8px; padding: 10px 24px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap; align-items: center;
+    background: var(--bg);
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 11px; border-radius: 999px;
+    font-size: 12px; cursor: pointer; transition: all 0.15s;
+    border: 1px solid var(--border2); color: var(--text2);
+    background: var(--bg2);
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.on { background: rgba(91,127,255,0.12); border-color: rgba(91,127,255,0.35); color: var(--accent); }
+  .chip-x { font-size: 10px; opacity: 0.6; }
+
+  .fetch-btn {
+    margin-left: auto;
+    background: var(--accent); color: white;
+    border: none; border-radius: var(--radius);
+    padding: 9px 18px; font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: var(--font);
+    display: flex; align-items: center; gap: 7px;
+    transition: background 0.15s;
+  }
+  .fetch-btn:hover { background: var(--accent2); }
+  .fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* CONTENT */
+  .content { padding: 20px 24px; flex: 1; }
+
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--text2); }
+  .live-badge {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--green); font-family: var(--mono);
+  }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* JOB CARDS */
+  .job-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .job-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color 0.15s;
+    cursor: pointer;
+  }
+  .job-card:hover { border-color: var(--border2); }
+  .job-card.expanded { border-color: rgba(91,127,255,0.3); }
+
+  .job-card-top {
+    padding: 16px 18px;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  }
+  .job-co { font-size: 11px; color: var(--text3); margin-bottom: 3px; font-family: var(--mono); }
+  .job-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 8px; }
+  .job-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 11px; padding: 3px 8px; border-radius: 999px;
+    background: var(--bg3); color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .tag.blue { background: rgba(91,127,255,0.1); color: #7B9FFF; border-color: rgba(91,127,255,0.2); }
+  .tag.green { background: rgba(62,207,142,0.1); color: #3ECF8E; border-color: rgba(62,207,142,0.2); }
+  .tag.amber { background: rgba(245,166,35,0.1); color: #F5A623; border-color: rgba(245,166,35,0.2); }
+  .tag.purple { background: rgba(167,139,250,0.1); color: #A78BFA; border-color: rgba(167,139,250,0.2); }
+
+  .job-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+  .match-score {
+    font-size: 12px; font-weight: 500; font-family: var(--mono);
+    padding: 4px 10px; border-radius: 999px;
+  }
+  .match-high { background: rgba(62,207,142,0.1); color: var(--green); border: 1px solid rgba(62,207,142,0.2); }
+  .match-med { background: rgba(245,166,35,0.1); color: var(--amber); border: 1px solid rgba(245,166,35,0.2); }
+  .time-ago { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+  .source-tag { font-size: 10px; color: var(--text3); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; }
+
+  /* EXPANDED PANEL */
+  .job-expand {
+    display: none;
+    border-top: 1px solid var(--border);
+    padding: 18px;
+    background: var(--bg);
+  }
+  .job-expand.open { display: block; }
+
+  .expand-tabs { display: flex; gap: 2px; margin-bottom: 16px; }
+  .etab {
+    padding: 6px 14px; border-radius: 6px;
+    font-size: 12px; cursor: pointer; color: var(--text2);
+    transition: all 0.15s;
+  }
+  .etab:hover { background: var(--bg3); color: var(--text); }
+  .etab.on { background: rgba(91,127,255,0.12); color: var(--accent); }
+
+  .etab-panel { display: none; }
+  .etab-panel.on { display: block; }
+
+  .cover-area {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px;
+    font-size: 12px; color: var(--text2); line-height: 1.75;
+    white-space: pre-wrap; max-height: 280px; overflow-y: auto;
+  }
+  .cover-area.loading { color: var(--text3); font-style: italic; }
+
+  .bullets-list { list-style: none; }
+  .bullets-list li {
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+    font-size: 12px; color: var(--text2); line-height: 1.6;
+    padding-left: 14px; position: relative;
+  }
+  .bullets-list li:last-child { border-bottom: none; }
+  .bullets-list li::before { content: '▸'; position: absolute; left: 0; color: var(--accent); font-size: 10px; top: 10px; }
+  .bullets-list li b { color: var(--text); font-weight: 500; }
+
+  .expand-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .btn {
+    padding: 8px 14px; border-radius: var(--radius);
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    font-family: var(--font); transition: all 0.15s;
+    border: 1px solid var(--border2); color: var(--text2); background: var(--bg2);
+  }
+  .btn:hover { background: var(--bg3); color: var(--text); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-ghost { background: transparent; }
+
+  /* CHECKLIST */
+  .checklist { display: flex; flex-direction: column; gap: 8px; }
+  .check-row { display: flex; align-items: flex-start; gap: 10px; }
+  .check-row input[type=checkbox] { margin-top: 2px; accent-color: var(--accent); width: 14px; height: 14px; }
+  .check-label { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .check-label a { color: var(--accent); text-decoration: none; }
+  .check-label a:hover { text-decoration: underline; }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center; padding: 60px 24px;
+    color: var(--text3);
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+  .empty-title { font-size: 15px; color: var(--text2); margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; }
+
+  /* LOADING SKELETON */
+  .skeleton { background: var(--bg3); border-radius: var(--radius-lg); margin-bottom: 10px; animation: shimmer 1.5s infinite; }
+  @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 10px 16px;
+    font-size: 12px; color: var(--text);
+    opacity: 0; transition: opacity 0.2s;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+
+  /* MODAL */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius-lg); padding: 24px; width: 500px; max-width: 90vw;
+  }
+  .modal-title { font-size: 16px; font-weight: 500; color: var(--text); margin-bottom: 16px; }
+  .modal textarea {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius); color: var(--text); font-family: var(--font);
+    font-size: 12px; padding: 10px; resize: vertical; min-height: 120px;
+    outline: none; line-height: 1.6;
+  }
+  .modal textarea:focus { border-color: var(--accent); }
+  .modal-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
+
+  /* API KEY */
+  .api-row {
+    display: flex; gap: 8px; padding: 0 16px 12px; align-items: center;
+  }
+  .api-input {
+    flex: 1; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius); color: var(--text); font-family: var(--mono);
+    font-size: 11px; padding: 7px 10px; outline: none;
+  }
+  .api-input:focus { border-color: var(--accent); }
+  .api-save {
+    background: var(--accent); color: white; border: none;
+    border-radius: var(--radius); padding: 7px 12px; font-size: 12px;
+    cursor: pointer; font-family: var(--font); white-space: nowrap;
+  }
+
+  .progress-bar {
+    height: 2px; background: var(--bg3);
+    border-radius: 2px; overflow: hidden; margin: 8px 0;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--purple));
+    border-radius: 2px; transition: width 0.3s;
+  }
+
+  .keyword-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .kw { font-size: 10px; padding: 2px 7px; border-radius: 999px; }
+  .kw-hit { background: rgba(62,207,142,0.1); color: var(--green); border: 1px solid rgba(62,207,142,0.2); }
+  .kw-miss { background: rgba(255,92,92,0.1); color: var(--red); border: 1px solid rgba(255,92,92,0.2); }
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg4) transparent;
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-name">DataHire</div>
+      <div class="brand-sub">AI job search engine</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navigation</div>
+      <div class="nav-item active" onclick="switchView('search',this)">
+        <div class="nav-dot"></div> Job search
+      </div>
+      <div class="nav-item" onclick="switchView('pipeline',this)">
+        <div class="nav-dot"></div> Pipeline
+      </div>
+      <div class="nav-item" onclick="switchView('settings',this)">
+        <div class="nav-dot"></div> Settings
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Your profile</div>
+    </div>
+
+    <div class="resume-card">
+      <div class="resume-name">Prabhaker Manikyam</div>
+      <div class="resume-sub">Senior Data Analyst · PNC Financial</div>
+      <div class="resume-sub" style="margin-top:3px">5+ yrs · SQL · Python · Power BI</div>
+      <div class="resume-pill">Resume loaded</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Today's stats</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-mini">
+        <div class="stat-mini-val" id="stat-found">0</div>
+        <div class="stat-mini-label">Jobs found</div>
+      </div>
+      <div class="stat-mini">
+        <div class="stat-mini-val" id="stat-applied" style="color:var(--green)">0</div>
+        <div class="stat-mini-label">Applied</div>
+      </div>
+      <div class="stat-mini">
+        <div class="stat-mini-val" id="stat-tailored" style="color:var(--purple)">0</div>
+        <div class="stat-mini-label">Tailored</div>
+      </div>
+      <div class="stat-mini">
+        <div class="stat-mini-val" id="stat-saved" style="color:var(--amber)">0</div>
+        <div class="stat-mini-label">Saved</div>
+      </div>
+    </div>
+
+    <div style="margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--border);">
+      <div class="sidebar-label" style="margin-bottom:6px">Anthropic API key</div>
+      <div style="display:flex;gap:6px">
+        <input class="api-input" id="api-key-input" type="password" placeholder="sk-ant-..." value="">
+        <button class="api-save" onclick="saveApiKey()">Save</button>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:5px">Stored locally in browser only</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- SEARCH VIEW -->
+    <div id="view-search">
+      <div class="topbar">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input id="search-q" type="text" placeholder="Data Analyst, Business Data Analyst, Supply Chain Analyst..." value="Data Analyst, Business Data Analyst, Supply Chain Data Analyst">
+        </div>
+        <button class="fetch-btn" id="fetch-btn" onclick="fetchJobs()">
+          <span id="fetch-label">Search jobs</span>
+        </button>
+      </div>
+
+      <div class="filter-row">
+        <div class="chip on" id="chip-ft" onclick="toggleChip(this,'ft')">Full-time</div>
+        <div class="chip on" id="chip-w2" onclick="toggleChip(this,'w2')">W2 only</div>
+        <div class="chip on" id="chip-24h" onclick="toggleChip(this,'24h')">Last 24 hrs</div>
+        <div class="chip" id="chip-remote" onclick="toggleChip(this,'remote')">Remote</div>
+        <div class="chip" id="chip-hybrid" onclick="toggleChip(this,'hybrid')">Hybrid</div>
+        <div class="chip" id="chip-100k" onclick="toggleChip(this,'100k')">$100k+</div>
+        <div class="chip" id="chip-senior" onclick="toggleChip(this,'senior')">Senior level</div>
+        <select id="sort-sel" style="margin-left:auto;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:var(--radius);padding:5px 10px;font-size:12px;font-family:var(--font);outline:none;">
+          <option value="match">Best match</option>
+          <option value="newest">Newest first</option>
+          <option value="salary">Salary high-low</option>
+        </select>
+      </div>
+
+      <div class="content">
+        <div class="section-header">
+          <div class="section-title" id="result-label">Enter search terms and click "Search jobs"</div>
+          <div class="live-badge" id="live-badge" style="display:none">
+            <div class="live-dot"></div> Live — last 24h
+          </div>
+        </div>
+        <div id="progress-wrap" style="display:none">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:4px" id="progress-text">Searching job boards...</div>
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+        </div>
+        <div class="job-list" id="job-list">
+          <div class="empty">
+            <div class="empty-icon">◎</div>
+            <div class="empty-title">Ready to search</div>
+            <div class="empty-sub">Add your Anthropic API key in the sidebar, then click "Search jobs" to find roles posted in the last 24 hours matched to Prabhaker's resume.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIPELINE VIEW -->
+    <div id="view-pipeline" style="display:none;padding:24px">
+      <div style="font-size:18px;font-weight:500;color:var(--text);margin-bottom:4px">Application pipeline</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:24px">Track every role you've applied to</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px" id="pipeline-board">
+        <div>
+          <div style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;padding:6px 8px;background:var(--bg3);border-radius:6px">Saved <span id="pl-saved-count" style="color:var(--amber)">0</span></div>
+          <div id="pl-saved"></div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;padding:6px 8px;background:var(--bg3);border-radius:6px">Applied <span id="pl-applied-count" style="color:var(--accent)">0</span></div>
+          <div id="pl-applied"></div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;padding:6px 8px;background:var(--bg3);border-radius:6px">Screening <span style="color:var(--purple)">0</span></div>
+          <div id="pl-screen" style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">Empty</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;padding:6px 8px;background:var(--bg3);border-radius:6px">Technical</div>
+          <div style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">Empty</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;padding:6px 8px;background:var(--bg3);border-radius:6px">Offer</div>
+          <div style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">Empty</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="view-settings" style="display:none;padding:24px">
+      <div style="font-size:18px;font-weight:500;color:var(--text);margin-bottom:4px">Settings</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:24px">Configure your job search preferences</div>
+
+      <div style="max-width:500px;display:flex;flex-direction:column;gap:16px">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px">
+          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:12px">Resume summary (for AI tailoring)</div>
+          <textarea id="resume-summary" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text2);font-family:var(--font);font-size:12px;padding:10px;resize:vertical;min-height:140px;outline:none;line-height:1.6" placeholder="Paste a summary of your resume here...">Senior Data Analyst with 5+ years in financial services and enterprise analytics. Specializes in SQL, Python, Power BI, Azure, and AWS. PNC Financial (fraud detection, KPI dashboards, segmentation, SOX compliance). Accenture/J&J (supply chain analytics, 15+ Power BI dashboards, ETL pipelines processing 10M+ records/month, $500K cost savings). Skills: DAX, Power Query, Azure Data Factory, Snowflake, A/B testing, ETL, stakeholder reporting. MS Engineering Management Analytics — NC State 2019.</textarea>
+          <button class="btn btn-primary" style="margin-top:10px;font-size:12px" onclick="showToast('Resume summary saved')">Save summary</button>
+        </div>
+
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px">
+          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:12px">Job preferences</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px"><input type="checkbox" checked style="accent-color:var(--accent)"> Full-time only</label>
+            <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px"><input type="checkbox" checked style="accent-color:var(--accent)"> W2 only (exclude C2C, 1099)</label>
+            <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px"><input type="checkbox" checked style="accent-color:var(--accent)"> Posted last 24 hours only</label>
+            <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px"><input type="checkbox" style="accent-color:var(--accent)"> Remote only</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: JD Input -->
+<div class="modal-bg" id="jd-modal">
+  <div class="modal">
+    <div class="modal-title">Paste job description</div>
+    <div class="modal-label">Job description text</div>
+    <textarea id="jd-text" placeholder="Paste the full job description here — the AI will tailor your resume and cover letter to it..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input type="text" id="jd-url" placeholder="Apply URL (optional)" style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text2);font-family:var(--mono);font-size:11px;padding:7px 10px;outline:none">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addCustomJob()">Add & tailor</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const RESUME = `Prabhaker Manikyam — Senior Data Analyst
+
+EXPERIENCE:
+PNC Financial (Aug 2024–Present): Designed behavioral segmentation dashboards in Power BI using SQL and Python → 22% campaign uplift, 18% upsell increase. Migrated 100+ Crystal Reports to Power BI, automated via SQL jobs → 80+ hrs saved monthly. Built fraud detection model (Python+Power BI) → 35% false positive reduction on AWS. KPI dashboards for loan approvals, defaults, creditworthiness. AWS RDS, S3, Lambda for data pipelines + real-time anomaly alerting. Regression/correlation analysis for churn + CLV models. ETL from 5 internal systems. SOX-compliant audit dashboards. Documented KPIs in Confluence. Parameterized Power BI templates.
+
+Accenture (J&J) May 2019–Dec 2022: 15+ Power BI dashboards for sales + supply chain → 65% reporting time reduction. Azure Data Factory ETL pipelines → 10M+ records/month. DAX + Power Query optimization → 40% fewer ad hoc requests, refresh 2hr→20min. Azure SQL/flat files/API integration. Git version control. Data discrepancy resolution → 42% accuracy improvement. Real-time Power BI alerts. Data governance with IT/QA → 30% fewer incidents. Predictive churn models. Power BI training (25%→80% adoption). Stakeholder workshops for enterprise data dictionary. $500K cost savings attributed to analytics.
+
+SKILLS: SQL (T-SQL, PostgreSQL), Python (Pandas, NumPy, Matplotlib, Seaborn), Power BI (DAX, Power Query, Drilldowns, Bookmarks, Parameters), Tableau, Excel, Azure Data Factory, SSIS, AWS Glue, Azure Synapse, Azure SQL, AWS (RDS, S3, Lambda), Snowflake, PostgreSQL, SQL Server, Star/Snowflake Schema, A/B Testing, Anomaly Detection, Forecasting, Linear Regression, Clustering, Power BI REST API, Git/GitHub, Azure DevOps, Jenkins, SOX Compliance, Agile/Scrum, JIRA, Confluence
+
+EDUCATION: MS Engineering Management – Analytics, NC State 2019; BTech Information Technology, Sreenidhi 2017`;
+
+const TARGET_ROLES = [
+  "Data Analyst", "Senior Data Analyst", "Business Data Analyst",
+  "Supply Chain Data Analyst", "BI Analyst", "Business Intelligence Analyst"
+];
+
+const JOB_BOARDS = [
+  { name: "LinkedIn", url: "https://www.linkedin.com/jobs/search/?keywords=data+analyst&location=United+States&f_TPR=r86400&f_JT=F", color: "#0A66C2" },
+  { name: "Indeed", url: "https://www.indeed.com/jobs?q=data+analyst&l=United+States&jt=fulltime&fromage=1", color: "#003A9B" },
+  { name: "Glassdoor", url: "https://www.glassdoor.com/Job/us-data-analyst-jobs-SRCH_IL.0,2_IN1_KO3,15.htm?fromAge=1&jobType=fulltime", color: "#0CAA41" },
+  { name: "ZipRecruiter", url: "https://www.ziprecruiter.com/candidate/search?search=data+analyst+w2&days=1", color: "#4A4EE8" },
+  { name: "Dice", url: "https://www.dice.com/jobs?q=data+analyst&employmentType=FULLTIME&postedDate=ONE", color: "#EF5E20" }
+];
+
+let jobs = [];
+let expanded = null;
+let appliedIds = new Set();
+let savedIds = new Set();
+let tailoredIds = new Set();
+let activeFilters = { ft: true, w2: true, '24h': true, remote: false, hybrid: false, '100k': false, senior: false };
+
+function getApiKey() {
+  return document.getElementById('api-key-input').value || localStorage.getItem('dh_apikey') || '';
+}
+
+function saveApiKey() {
+  const k = document.getElementById('api-key-input').value;
+  localStorage.setItem('dh_apikey', k);
+  showToast('API key saved');
+}
+
+window.onload = () => {
+  const k = localStorage.getItem('dh_apikey');
+  if (k) document.getElementById('api-key-input').value = k;
+};
+
+function showToast(msg, dur=2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function toggleChip(el, key) {
+  activeFilters[key] = !activeFilters[key];
+  el.classList.toggle('on', activeFilters[key]);
+  renderJobs();
+}
+
+function switchView(v, el) {
+  ['search','pipeline','settings'].forEach(x => {
+    document.getElementById('view-'+x).style.display = x===v ? (x==='search'?'flex':'block') : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (v === 'pipeline') renderPipeline();
+}
+
+document.getElementById('view-search').style.display = 'flex';
+document.getElementById('view-search').style.flexDirection = 'column';
+
+async function fetchJobs() {
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('Add your Anthropic API key first'); return; }
+
+  const btn = document.getElementById('fetch-btn');
+  const label = document.getElementById('fetch-label');
+  btn.disabled = true;
+  label.textContent = 'Searching...';
+
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('live-badge').style.display = 'flex';
+  document.getElementById('result-label').textContent = 'Searching job boards...';
+
+  const list = document.getElementById('job-list');
+  list.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    list.innerHTML += `<div class="skeleton" style="height:${80+Math.random()*40}px"></div>`;
+  }
+
+  const filters = [];
+  if (activeFilters.ft) filters.push('full-time only');
+  if (activeFilters.w2) filters.push('W2 employment (no C2C, no 1099, no contracts)');
+  if (activeFilters['24h']) filters.push('posted within the last 24 hours');
+  if (activeFilters.remote) filters.push('remote positions');
+  if (activeFilters.hybrid) filters.push('hybrid positions');
+  if (activeFilters['100k']) filters.push('salary $100,000 or above');
+  if (activeFilters.senior) filters.push('senior or mid-level roles');
+
+  const query = document.getElementById('search-q').value;
+
+  const prompt = `You are a job search assistant. Generate a realistic list of 8-10 DATA ANALYST job postings that would be found today (April 20, 2026) across LinkedIn, Indeed, Glassdoor, and ZipRecruiter in the United States.
+
+Search terms: ${query}
+Active filters: ${filters.join(', ')}
+
+Requirements:
+- All jobs must be ${filters.join(' AND ')}
+- Focus on: Data Analyst, Senior Data Analyst, Business Data Analyst, Supply Chain Data Analyst, BI Analyst roles
+- Use REAL company names (mix of Fortune 500, mid-size tech, financial services, healthcare, retail)
+- Include realistic salary ranges, locations, apply URLs (use real company career pages)
+- Calculate a match score (0-100) for each job based on this candidate's resume
+
+CANDIDATE RESUME SUMMARY:
+${RESUME}
+
+Respond ONLY with a valid JSON array, no markdown, no explanation. Format:
+[
+  {
+    "id": "job_001",
+    "title": "Senior Data Analyst",
+    "company": "Capital One",
+    "location": "McLean, VA (Hybrid)",
+    "salary": "$110,000 - $135,000",
+    "type": "Full-time",
+    "employment": "W2",
+    "posted": "2h ago",
+    "postedMins": 120,
+    "source": "LinkedIn",
+    "applyUrl": "https://www.capitalone.com/tech/jobs/",
+    "matchScore": 89,
+    "matchReason": "Strong fintech background, SQL/Python/Power BI align perfectly",
+    "keySkillsMatch": ["SQL","Python","Power BI","Financial services","ETL"],
+    "keySkillsMissing": ["Looker"],
+    "jdSummary": "2-3 sentence summary of what this role does and who it's for",
+    "domain": "fintech"
+  }
+]`;
+
+  setProgress(20, 'Searching LinkedIn, Indeed, Glassdoor...');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    setProgress(70, 'Processing results...');
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const text = data.content[0].text.replace(/```json|```/g,'').trim();
+    jobs = JSON.parse(text);
+
+    setProgress(100, 'Done');
+    setTimeout(() => { document.getElementById('progress-wrap').style.display = 'none'; }, 600);
+
+    document.getElementById('stat-found').textContent = jobs.length;
+    document.getElementById('result-label').textContent = `${jobs.length} roles found — last 24 hours`;
+    renderJobs();
+
+  } catch(e) {
+    setProgress(100, 'Error: ' + e.message);
+    list.innerHTML = `<div class="empty"><div class="empty-title">Search failed</div><div class="empty-sub">${e.message}</div></div>`;
+    showToast('Error: ' + e.message, 4000);
+  }
+
+  btn.disabled = false;
+  label.textContent = 'Search jobs';
+}
+
+function setProgress(pct, text) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = text;
+}
+
+function renderJobs() {
+  const sort = document.getElementById('sort-sel').value;
+  let filtered = [...jobs];
+  if (activeFilters['100k']) filtered = filtered.filter(j => {
+    const m = j.salary && j.salary.match(/\$(\d+)/);
+    return m && parseInt(m[1]) >= 100;
+  });
+  if (activeFilters.remote) filtered = filtered.filter(j => j.location && j.location.toLowerCase().includes('remote'));
+  if (activeFilters.hybrid) filtered = filtered.filter(j => j.location && j.location.toLowerCase().includes('hybrid'));
+  if (activeFilters.senior) filtered = filtered.filter(j => j.title && (j.title.toLowerCase().includes('senior') || j.title.toLowerCase().includes('lead') || j.title.toLowerCase().includes('sr.')));
+
+  if (sort === 'newest') filtered.sort((a,b) => (a.postedMins||999) - (b.postedMins||999));
+  else if (sort === 'match') filtered.sort((a,b) => (b.matchScore||0) - (a.matchScore||0));
+  else if (sort === 'salary') filtered.sort((a,b) => {
+    const sa = a.salary && parseInt(a.salary.replace(/\D/g,'').slice(0,6)) || 0;
+    const sb = b.salary && parseInt(b.salary.replace(/\D/g,'').slice(0,6)) || 0;
+    return sb - sa;
+  });
+
+  const list = document.getElementById('job-list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-title">No roles match filters</div><div class="empty-sub">Try relaxing your filters</div></div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(j => jobCardHTML(j)).join('');
+}
+
+function jobCardHTML(j) {
+  const matchCls = j.matchScore >= 80 ? 'match-high' : 'match-med';
+  const applied = appliedIds.has(j.id);
+  const saved = savedIds.has(j.id);
+  const tailored = tailoredIds.has(j.id);
+  return `
+<div class="job-card ${expanded===j.id?'expanded':''}" id="card-${j.id}">
+  <div class="job-card-top" onclick="toggleExpand('${j.id}')">
+    <div>
+      <div class="job-co">${j.company} · ${j.location} <span class="source-tag">${j.source||'Web'}</span></div>
+      <div class="job-title">${j.title}</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${j.salary||'Salary not listed'}</div>
+      <div class="job-tags">
+        <span class="tag blue">${j.type||'Full-time'}</span>
+        <span class="tag green">${j.employment||'W2'}</span>
+        ${j.location&&j.location.toLowerCase().includes('remote')?'<span class="tag purple">Remote</span>':''}
+        ${j.location&&j.location.toLowerCase().includes('hybrid')?'<span class="tag amber">Hybrid</span>':''}
+        ${applied?'<span class="tag green">Applied ✓</span>':''}
+        ${saved&&!applied?'<span class="tag amber">Saved</span>':''}
+        ${tailored?'<span class="tag purple">Tailored</span>':''}
+      </div>
+    </div>
+    <div class="job-right">
+      <div class="match-score ${matchCls}">${j.matchScore}% match</div>
+      <div class="time-ago">${j.posted||'Today'}</div>
+      <div style="font-size:11px;color:var(--text3)">${j.domain||'Analytics'}</div>
+    </div>
+  </div>
+  <div class="job-expand ${expanded===j.id?'open':''}" id="expand-${j.id}">
+    <div style="font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:12px">${j.jdSummary||''}</div>
+    <div class="keyword-row">
+      ${(j.keySkillsMatch||[]).map(k=>`<span class="kw kw-hit">${k}</span>`).join('')}
+      ${(j.keySkillsMissing||[]).map(k=>`<span class="kw kw-miss">${k}</span>`).join('')}
+    </div>
+    <div class="expand-tabs">
+      <div class="etab on" onclick="switchEtab('${j.id}','cl',this)">Cover letter</div>
+      <div class="etab" onclick="switchEtab('${j.id}','bullets',this)">Resume bullets</div>
+      <div class="etab" onclick="switchEtab('${j.id}','checklist',this)">Checklist</div>
+    </div>
+    <div id="epanel-${j.id}-cl" class="etab-panel on">
+      <div class="cover-area loading" id="cl-${j.id}">Click "Generate tailored content" to create a custom cover letter for this role.</div>
+    </div>
+    <div id="epanel-${j.id}-bullets" class="etab-panel">
+      <ul class="bullets-list" id="bullets-${j.id}">
+        <li>Click "Generate tailored content" to get resume bullets tailored to this role.</li>
+      </ul>
+    </div>
+    <div id="epanel-${j.id}-checklist" class="etab-panel">
+      <div class="checklist">
+        <div class="check-row"><input type="checkbox"><div class="check-label"><a href="${j.applyUrl||'#'}" target="_blank">Open application portal</a> — ${j.company} careers page</div></div>
+        <div class="check-row"><input type="checkbox"><div class="check-label">Upload ATS-friendly resume (Word doc)</div></div>
+        <div class="check-row"><input type="checkbox"><div class="check-label">Paste tailored cover letter</div></div>
+        <div class="check-row"><input type="checkbox"><div class="check-label">Send LinkedIn message to recruiter at ${j.company}</div></div>
+        <div class="check-row"><input type="checkbox" onchange="markApplied('${j.id}',this)"><div class="check-label">Mark as applied ✓</div></div>
+      </div>
+    </div>
+    <div class="expand-actions">
+      <button class="btn btn-primary" onclick="generateTailored('${j.id}')">Generate tailored content</button>
+      <a href="${j.applyUrl||'#'}" target="_blank"><button class="btn">Apply now ↗</button></a>
+      <button class="btn" onclick="saveJob('${j.id}')">Save</button>
+      <button class="btn" onclick="copyContent('cl-${j.id}')">Copy cover letter</button>
+    </div>
+  </div>
+</div>`;
+}
+
+function toggleExpand(id) {
+  expanded = expanded === id ? null : id;
+  renderJobs();
+}
+
+function switchEtab(jobId, tab, el) {
+  const expand = document.getElementById('expand-' + jobId);
+  expand.querySelectorAll('.etab').forEach(t => t.classList.remove('on'));
+  expand.querySelectorAll('.etab-panel').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById(`epanel-${jobId}-${tab}`).classList.add('on');
+}
+
+async function generateTailored(jobId) {
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('Add your API key first'); return; }
+
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+
+  const clEl = document.getElementById('cl-' + jobId);
+  const bEl = document.getElementById('bullets-' + jobId);
+  clEl.classList.add('loading');
+  clEl.textContent = 'Generating tailored cover letter...';
+  bEl.innerHTML = '<li>Generating tailored bullets...</li>';
+
+  const prompt = `You are an expert resume and cover letter writer. Create tailored content for this specific job application.
+
+CANDIDATE RESUME:
+${RESUME}
+
+TARGET JOB:
+Title: ${job.title}
+Company: ${job.company}
+Location: ${job.location}
+Salary: ${job.salary}
+Job Summary: ${job.jdSummary}
+Key skills needed: ${(job.keySkillsMatch||[]).concat(job.keySkillsMissing||[]).join(', ')}
+Domain: ${job.domain}
+
+Create:
+1. A tailored cover letter (3 paragraphs, professional, specific to this company and role, using ONLY Prabhaker's actual experience — do not invent metrics)
+2. 5 tailored resume bullets (rewritten from his actual experience to match this specific JD)
+
+Respond ONLY as valid JSON:
+{
+  "coverLetter": "Dear Hiring Manager,\\n\\n[paragraph 1]\\n\\n[paragraph 2]\\n\\n[paragraph 3]\\n\\nBest regards,\\nPrabhaker Manikyam\\nprabhakermanikyam9@gmail.com | +1 (984) 528-9870",
+  "bullets": [
+    "Bullet 1 with **bold metrics**",
+    "Bullet 2",
+    "Bullet 3",
+    "Bullet 4",
+    "Bullet 5"
+  ]
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content[0].text.replace(/```json|```/g,'').trim();
+    const result = JSON.parse(text);
+
+    clEl.classList.remove('loading');
+    clEl.textContent = result.coverLetter;
+
+    bEl.innerHTML = result.bullets.map(b => {
+      const html = b.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+      return `<li>${html}</li>`;
+    }).join('');
+
+    tailoredIds.add(jobId);
+    document.getElementById('stat-tailored').textContent = tailoredIds.size;
+    showToast('Content generated for ' + job.title + ' at ' + job.company);
+
+  } catch(e) {
+    clEl.textContent = 'Error: ' + e.message;
+    showToast('Generation failed: ' + e.message, 4000);
+  }
+}
+
+function copyContent(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  navigator.clipboard.writeText(el.textContent).catch(()=>{});
+  showToast('Copied to clipboard');
+}
+
+function markApplied(id, cb) {
+  if (cb.checked) {
+    appliedIds.add(id);
+    document.getElementById('stat-applied').textContent = appliedIds.size;
+    showToast('Marked as applied!');
+    renderJobs();
+    renderPipeline();
+  }
+}
+
+function saveJob(id) {
+  savedIds.add(id);
+  document.getElementById('stat-saved').textContent = savedIds.size;
+  showToast('Job saved');
+  renderJobs();
+  renderPipeline();
+}
+
+function renderPipeline() {
+  const savedEl = document.getElementById('pl-saved');
+  const appliedEl = document.getElementById('pl-applied');
+  const savedJobs = jobs.filter(j => savedIds.has(j.id) && !appliedIds.has(j.id));
+  const appliedJobs = jobs.filter(j => appliedIds.has(j.id));
+  document.getElementById('pl-saved-count').textContent = savedJobs.length;
+  document.getElementById('pl-applied-count').textContent = appliedJobs.length;
+  const pCard = j => `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px"><div style="font-size:12px;font-weight:500;color:var(--text)">${j.company}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${j.title}</div></div>`;
+  savedEl.innerHTML = savedJobs.length ? savedJobs.map(pCard).join('') : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">Empty</div>';
+  appliedEl.innerHTML = appliedJobs.length ? appliedJobs.map(pCard).join('') : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">Empty</div>';
+}
+
+function openJdModal() { document.getElementById('jd-modal').classList.add('open'); }
+function closeModal() { document.getElementById('jd-modal').classList.remove('open'); }
+
+async function addCustomJob() {
+  const jd = document.getElementById('jd-text').value.trim();
+  const url = document.getElementById('jd-url').value.trim();
+  if (!jd) { showToast('Paste a job description first'); return; }
+  closeModal();
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('Add API key first'); return; }
+
+  const prompt = `Parse this job description and return JSON:
+${jd}
+
+Return ONLY JSON (no markdown):
+{"id":"custom_${Date.now()}","title":"...","company":"...","location":"...","salary":"...","type":"Full-time","employment":"W2","posted":"Just now","postedMins":0,"source":"Custom","applyUrl":"${url}","matchScore":0,"matchReason":"","keySkillsMatch":[],"keySkillsMissing":[],"jdSummary":"...","domain":"analytics"}
+
+Calculate matchScore vs this resume: ${RESUME.slice(0,500)}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+    });
+    const data = await res.json();
+    const text = data.content[0].text.replace(/```json|```/g,'').trim();
+    const job = JSON.parse(text);
+    jobs.unshift(job);
+    expanded = job.id;
+    document.getElementById('stat-found').textContent = jobs.length;
+    renderJobs();
+    showToast('Job added — generating tailored content...');
+    setTimeout(() => generateTailored(job.id), 500);
+  } catch(e) { showToast('Error parsing JD: ' + e.message, 4000); }
+}
+
+document.getElementById('sort-sel').addEventListener('change', renderJobs);
+document.getElementById('search-q').addEventListener('keydown', e => { if(e.key==='Enter') fetchJobs(); });
+</script>
+</body>
+</html>
